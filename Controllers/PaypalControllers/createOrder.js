@@ -30,23 +30,42 @@ const createOrder = async (information) => {
               },
             },
           ],
-          application_context: {
-            return_url:
-              "https://developer.paypal.com/docs/api/orders/v2/#orders_create",
-            cancel_url: "https://imgflip.com/i/5lurmz",
-            //Crea unas url en el .env para poder usar la redirección oficial sin peligro.
-            shipping_preference: "NO_SHIPPING",
-            user_action: "PAY_NOW",
-            brand_name: "KAMEHAMEHAAAAAAA"
+          payment_source: {
+            paypal: {
+              experience_context: {
+                payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
+                payment_method_selected: "PAYPAL",
+                brand_name: "PracticeApp: The art of Devs",
+                shipping_preference_: "NO_SHIPPING",
+                locale: "en-US",
+                user_action: "PAY_NOW",
+                rl:
+                  "https://developer.paypal.com/docs/api/orders/v2/#orders_create",
+                cancel_url:
+                  "https://developer.paypal.com/dashboard/accounts/edit/4832939085191547745?accountName=sb-awxg144887185@personal.example.com",
+              },
+            },
           },
         }),
+        responseType: "json",
       });
-      console.log(res.data);
+      console.log(res);
+
       //Se requiere es el link de approve, por lo que se puede obtener de la siguiente manera: response.data.links.find(link=> link.rel == "approve").href
-      return res ? res.data : null;
+      const answer = res.data.links.find(
+        (link) => link.rel == "payer-action"
+      ).href;
+      return res
+        ? {
+            status: "success",
+            message: "Order Created",
+            orderId: res.data.id,
+            paymentLink: answer,
+          }
+        : null;
     }
   } catch (error) {
-    console.log(error.response.data)
+    console.log(error);
     throw new Error(error?.message);
   }
 };
