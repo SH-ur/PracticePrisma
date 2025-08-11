@@ -1,9 +1,14 @@
 const generateAccessToken = require("./authController");
 const axios = require("axios");
 //import createOrderObject from "../../utils/paypalTypes";
-const createOrder = async (information) => {
+const createOrder = async (itemsJson) => {
   try {
     const accessToken = await generateAccessToken();
+    const { items } = itemsJson;
+    let sumTotal = 0;
+    items.forEach(
+      (item) => (sumTotal += item.unit_amount.value * item.quantity)
+    );
 
     if (accessToken) {
       const res = await axios({
@@ -11,20 +16,20 @@ const createOrder = async (information) => {
         method: "post",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + accessToken,
+          Authorization: `Bearer ${accessToken}`,
         },
         data: JSON.stringify({
           intent: "CAPTURE",
           purchase_units: [
             {
-              items: [information],
+              items: items,
               amount: {
-                currency_code: information.unit_amount.currency_code,
-                value: information.unit_amount.value,
+                currency_code: items[0].unit_amount.currency_code, //We assume that everything is using the same currency.
+                value: Math.round(sumTotal),
                 breakdown: {
                   item_total: {
-                    currency_code: information.unit_amount.currency_code,
-                    value: information.unit_amount.value,
+                    currency_code: items[0].unit_amount.currency_code,
+                    value: Math.round(sumTotal),
                   },
                 },
               },
@@ -35,23 +40,23 @@ const createOrder = async (information) => {
               experience_context: {
                 payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
                 payment_method_selected: "PAYPAL",
-                brand_name: "PracticeApp: The art of Devs",
-                shipping_preference_: "NO_SHIPPING",
+                brand_name: "KM2 Services",
+                shipping_preference: "NO_SHIPPING",
                 locale: "en-US",
                 user_action: "PAY_NOW",
-                rl:
+                return_url:
+                  process.env.RETURN_URL ||
                   "https://developer.paypal.com/docs/api/orders/v2/#orders_create",
                 cancel_url:
-                  "https://developer.paypal.com/dashboard/accounts/edit/4832939085191547745?accountName=sb-awxg144887185@personal.example.com",
+                  process.env.CANCEL_URL ||
+                  "https://www.google.com/"
               },
             },
           },
         }),
         responseType: "json",
       });
-      console.log(res);
 
-      //Se requiere es el link de approve, por lo que se puede obtener de la siguiente manera: response.data.links.find(link=> link.rel == "approve").href
       const answer = res.data.links.find(
         (link) => link.rel == "payer-action"
       ).href;
@@ -65,7 +70,6 @@ const createOrder = async (information) => {
         : null;
     }
   } catch (error) {
-    console.log(error);
     throw new Error(error?.message);
   }
 };
