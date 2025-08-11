@@ -1,34 +1,22 @@
-const createOrder = require("../paypalControllers/createOrder");
 const generateAccessToken = require("../paypalControllers/authController");
 const axios = require("axios");
-const paypalComplete = async (items) => {
+const paypalComplete = async (orderId) => {
   try {
-    //Step 1: Create Order
-    const theCreateOrder = await createOrder(items);
-
-    //Step 2: Verify if the id exists, because is necessary for Capture Order
-    if (!theCreateOrder || typeof theCreateOrder == null)
-      return {
-        status: "error",
-        message: "Something went wrong with the Create Order.",
-      };
-
-    //Step 3: With the id, let's create an Capture Order. First, authentication.
     const auth = await generateAccessToken();
-
     if (auth) {
       const response = await axios.post(
-        `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${theCreateOrder.orderId}/capture`,
+        `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`,
+        {},
         {
           headers: {
-            Content_Type: "application/json",
+            "Content-Type": "application/json",
             Authorization: `Bearer ${auth}`,
-            responseType: "json",
           },
+          responseType: "json",
         }
       );
-
-      const paymentData = response.body;
+      console.log(response);
+      const paymentData = response.data;
 
       if (paymentData.status !== "COMPLETED")
         return {
@@ -41,7 +29,6 @@ const paypalComplete = async (items) => {
         status: "success",
         message: "Completed Payment!",
         data: paymentData,
-        link: theCreateOrder.paymentLink
       };
     }
   } catch (error) {
@@ -49,4 +36,4 @@ const paypalComplete = async (items) => {
   }
 };
 
-module.exports= paypalComplete;
+module.exports = paypalComplete;
