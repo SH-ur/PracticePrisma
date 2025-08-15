@@ -15,7 +15,7 @@ const paypalComplete = async (orderId) => {
           responseType: "json",
         }
       );
-      console.log(response);
+      
       const paymentData = response.data;
 
       if (paymentData.status !== "COMPLETED")
